@@ -20,13 +20,13 @@ class EpsemBot(discord.Client):
 
     async def on_message(self, message):
 
-        # Checks if message isn't from the bot itself.
-        if message.author == self.user:
+        # Checks if message isn't from the bot itself, is from the correct server, and it is plain text. 
+        if message.author == self.user or message.guild != self.guild or message.type != discord.MessageType.default:
             return
-        
-        # Checks if the message is on the correct server.
-        if message.guild != self.guild:
-            return
+
+        # print(message.id)
+        for reaction in message.reaction:
+            print(reaction.id)
 
         # Does something if message is correct.
         if message.content == '99!':
