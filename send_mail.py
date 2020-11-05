@@ -3,6 +3,13 @@ import json
 
 
 def send_mail(to, link):
+    '''
+    Given a destination mail adress and the verification link to insert on the mail, this function sends the mail using gmail_settings.json.
+    
+    Returns True if succeeded and False if failed.
+
+    Both parameters must be strings: send_mail('eric@ericroy.net', 'https://ericroy.net')
+    '''
     # Loading variables
     with open("gmail_settings.json", "r") as fin:
         json_raw = json.loads(fin.read())
@@ -36,4 +43,5 @@ if __name__=="__main__":
 
     to = input("Introduce *to* mail adress: ")
     link = input("Introduce verification link adresss: ")
+
     print( ( "\nMail successfully sent to " + to ) if send_mail(to, link) else "\nSomething went wrong while sending your mail." )
