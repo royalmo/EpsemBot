@@ -7,7 +7,8 @@
 import json
 import discord
 
-from send_mail import send_mail
+# Importing own stuff
+import usermanager
 
 class EpsemBot(discord.Client):
     async def on_ready(self):

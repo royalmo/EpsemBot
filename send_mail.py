@@ -1,10 +1,14 @@
+# MAIN FILE IS EpsemBot.py
+# This file manages send_mail(), that is usefull when verifying user mails.
+
 import smtplib
 import json
 
-
-def send_mail(to, code):
+def send_mail(to, code, name=""):
     '''
     Given a destination mail adress and the verification code to insert on the mail, this function sends the mail using gmail_settings.json.
+
+    A name can also be given, to make the user feel we concern about security.
     
     Returns True if succeeded and False if failed.
 
@@ -24,7 +28,7 @@ def send_mail(to, code):
         BODY = json_raw["body"]
 
     # Creating mail text
-    mail = f'From: "EPSEM-BOT" <{GMAIL_USR}>\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(code)}'
+    mail = f'From: "EPSEM-BOT" <{GMAIL_USR}>\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(name, code)}'
 
     # Sends mail (except if no connection, google servers down, etc.)
     try:
@@ -42,6 +46,7 @@ def send_mail(to, code):
 if __name__=="__main__":
 
     to = input("Introduce *to* mail adress: ")
+    name = input("Enter username: ")
     code = input("Introduce verification code to send: ")
 
-    print( ( "\nMail successfully sent to " + to ) if send_mail(to, code) else "\nSomething went wrong while sending your mail." )
+    print( ( "\nMail successfully sent to " + to ) if send_mail(to, code, name) else "\nSomething went wrong while sending your mail." )
