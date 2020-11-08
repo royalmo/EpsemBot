@@ -2,13 +2,13 @@ import smtplib
 import json
 
 
-def send_mail(to, link):
+def send_mail(to, code):
     '''
-    Given a destination mail adress and the verification link to insert on the mail, this function sends the mail using gmail_settings.json.
+    Given a destination mail adress and the verification code to insert on the mail, this function sends the mail using gmail_settings.json.
     
     Returns True if succeeded and False if failed.
 
-    Both parameters must be strings: send_mail('eric@ericroy.net', 'https://ericroy.net')
+    Both parameters must be strings: send_mail('eric@ericroy.net', '937485')
     '''
     # Loading variables
     with open("gmail_settings.json", "r") as fin:
@@ -24,7 +24,7 @@ def send_mail(to, link):
         BODY = json_raw["body"]
 
     # Creating mail text
-    mail = f'From: "EPSEM-BOT" <{GMAIL_USR}>\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(link)}'
+    mail = f'From: "EPSEM-BOT" <{GMAIL_USR}>\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(code)}'
 
     # Sends mail (except if no connection, google servers down, etc.)
     try:
@@ -42,6 +42,6 @@ def send_mail(to, link):
 if __name__=="__main__":
 
     to = input("Introduce *to* mail adress: ")
-    link = input("Introduce verification link adresss: ")
+    code = input("Introduce verification code to send: ")
 
-    print( ( "\nMail successfully sent to " + to ) if send_mail(to, link) else "\nSomething went wrong while sending your mail." )
+    print( ( "\nMail successfully sent to " + to ) if send_mail(to, code) else "\nSomething went wrong while sending your mail." )
