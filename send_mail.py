@@ -24,7 +24,7 @@ def send_mail(to, link):
         BODY = json_raw["body"]
 
     # Creating mail text
-    mail = f"From: {GMAIL_USR}\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(link)}"
+    mail = f'From: "EPSEM-BOT" <{GMAIL_USR}>\nTo: {to}\nSubject: {SUBJECT}\n\n{BODY.format(link)}'
 
     # Sends mail (except if no connection, google servers down, etc.)
     try:

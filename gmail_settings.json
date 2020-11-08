@@ -6,5 +6,5 @@
     "port": 465,
 
     "subject": "[EPSEM-BOT] Verifica el teu compte de Discord",
-    "body": "Hola,\n\nHas rebut aquest mail ja que has intentat unir-te al servidor de Discord de l'alumnat del grau d'Enginyeria de sistemes TIC, a la EPSEM.\n\nPer a confirmar el teu compte, fes click en aquest link: {0} .\n\nSi no has sigut tu, pots ignorar aquest missatge\nSi vols saber alguna cosa sobre aquest missatge, respon aquest mail.\n\nSalutacions,\n\nEPSEM-BOT\n(https://github.com/royalmo/EpsemBot)"
+    "body": "Hola,\n\nHas rebut aquest mail ja que has intentat unir-te al servidor de Discord de l'alumnat del grau d'Enginyeria de sistemes TIC, a la EPSEM.\n\nPer a confirmar el teu compte, fes servir aquest codi: {0} .\n\nSi no has sigut tu, pots ignorar aquest missatge\nSi vols saber alguna cosa sobre aquest missatge, respon aquest mail.\n\nSalutacions,\n\nEPSEM-BOT\n(https://github.com/royalmo/EpsemBot)"
 }

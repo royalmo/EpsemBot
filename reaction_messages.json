@@ -1,0 +1,14 @@
+{
+    "allow-dm":
+    {
+        "message_id": 827398252345,
+        "reaction": ":thumbs_up:"
+    },
+    "subjects":
+    {
+        "q1":
+        {
+            "fisica": ["id", "tag"]
+        }
+    }
+}
