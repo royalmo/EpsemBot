@@ -7,6 +7,8 @@
 import json
 import discord
 
+from send_mail import send_mail
+
 class EpsemBot(discord.Client):
     async def on_ready(self):
 
@@ -42,7 +44,17 @@ class EpsemBot(discord.Client):
             try:
                 cnt = int(cnt)
             except ValueError:
-                await message.channel.send('user')
+                if len(cnt.split('.'))>1:
+                    sent = await message.channel.send(f'{message.author.mention}: enviar mail a `{cnt}@estudiantat.upc.edu` (👍/👎)? Si el mail és `{cnt}@upc.edu`, reacciona amb 🤏')
+                    await sent.add_reaction( emoji="👍" )
+                    await sent.add_reaction( emoji="👎" )
+                    await sent.add_reaction( emoji="🤏" )
+                    await sent.delete(delay=30)
+                else:
+                    sent = await message.channel.send(f"No entenc el que dius {message.author.mention}, torna-ho a intentar, o demana {helpch.mention} .")
+                    await sent.delete(delay=10)
+                    return
+                    
             else:
                 if len(cnt)==6:
                     await message.channel.send('correct code')
@@ -50,7 +62,7 @@ class EpsemBot(discord.Client):
                     await message.channel.send('incorrect code')
 
         # Does something if message is correct.
-        if len(message.mentions)>2:
+        elif len(message.mentions)>2:
             await message.channel.send("Ep! No et passis etiquetant a tanta gent!")
 
     async def on_raw_reaction_add(self, playload):
