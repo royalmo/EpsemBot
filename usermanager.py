@@ -3,7 +3,7 @@
 
 from json import loads, dumps
 from send_mail import send_mail
-from random import ranidnt
+from random import randint
 
 JSON_FILE_PATH = "db/users.json"
 
@@ -99,23 +99,50 @@ class User():
         Sends a verification code to the user, and updates status and json file.
         Returns True if succeeded, False if not.
         '''
-        self.verification_code = ranidnt( 100000, 999999 )
-        self.mail_status = 3 if self.mail_status<3 else 8
+        self.verification_code = randint( 100000, 999999 )
+        self.mail_status = 3 if self.mail_status<5 else 8
         self.saveuser()
 
-        return send_mail(self.upc_mail_pending, self.verification_code, self.username)
+        return send_mail(self.upc_mail_pending, self.verification_code, get_name(self.upc_mail_pending))
 
     def code_command(self, code):
         '''
         CODE HAS TO BE AN INTEGER!
         Given the code and the user, verifies if code is correct, and updates things if necessary. Returns True/False depending of code verification.
         '''
-        if self.mail_status not in [3, 8]:
+        # If code not asked
+        if self.mail_status not in [3, 4, 8]:
             return False
         
+        # If code is incorrect
+        if code!=self.verification_code:
+            self.mail_status = 4 if self.mail_status in [3, 4] else 8
+            self.saveuser()
+            return False
 
+        # Updates mail
+        self.mail_status = 5
+        self.upc_mail_valid = self.upc_mail_pending
+        self.upc_mail_pending = self.upc_mail_expired = ""
 
-        return code==self.verification_code
+        # Removes old user (if any)
+        self.expire_mail(self.upc_mail_valid)
+
+        # Add student roles to the user.
+        self.update_roles()
+
+        # Change student username (NOT Discord nickname, this has to be done from EpsemBot.py)
+        self.nickname = get_name(self.upc_mail_valid)
+
+        # Save and return
+        self.saveuser()
+        return True
+
+    def expire_mail(self, mail):
+        pass
+
+    def update_roles(self):
+        pass
 
 # User actions, but that they don't depend of the user.
 
@@ -143,3 +170,13 @@ def is_upc_mail(mail):
         return False
     
     return len(user.split('.'))>=2
+
+def get_name(username):
+    '''
+    Given a email or a username, returns the capitalized name for the user.
+    This funciton doesn't verify that a username is valid or not.
+    The username should be something like name.surname.othersurname .
+    '''
+    username = username.split('@')[0] #Removes mail domain if it has some.
+    
+    return ' '.join([word.capitalize() for word in username.split('.')])

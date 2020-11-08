@@ -2,7 +2,7 @@
 
 users = { # A list of all users.
     "8762349134109743": { # Sorted by discord_id.
-        "server-nickname": "Eric Roy",
+        "server-nickname": "Eric Roy", # Takes eric.roy and capitalizes de name. Only available when mail is verified.
 
         "upc-mail-valid": "eric.roy@estudiantat.upc.edu", 
             #Blank if no valid mail, expired or pending.
@@ -46,3 +46,7 @@ users = { # A list of all users.
         # Another user...
     }
 }
+
+temp_vc = [
+    { "channel-type": 3984723498723 } #For every extra channel ceated
+]

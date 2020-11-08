@@ -10,6 +10,8 @@ import discord
 # Importing own stuff
 import usermanager
 
+intents = discord.Intents(members=True, messages=True)
+
 class EpsemBot(discord.Client):
     async def on_ready(self):
 
@@ -27,6 +29,12 @@ class EpsemBot(discord.Client):
         # Checks if message isn't from the bot itself, is from the correct server, and it is plain text. 
         if message.author == self.user or message.guild != self.guild or message.type != discord.MessageType.default:
             return
+
+        # DO THIS WHEN YOU NEED TO PUT REACTION ON MESSAGES
+        # async for msg in message.channel.history():    
+        #     await msg.add_reaction( emoji="1️⃣" )
+        #     await msg.add_reaction( emoji="2️⃣" )
+        # return
 
         # Checks and does something if message is from the 'welcome' channel
         if message.channel.id==773689013542060064:
@@ -66,27 +74,48 @@ class EpsemBot(discord.Client):
         elif len(message.mentions)>2:
             await message.channel.send("Ep! No et passis etiquetant a tanta gent!")
 
-    async def on_raw_reaction_add(self, playload):
-        DM_MSG = 773846606792491029
-        DM_EMJ = "👍"
+    async def on_raw_reaction_add(self, payload):
+        msg = payload.message_id
+        usr = payload.user_id
+        emoji = payload.emoji.name
+        ch = payload.channel_id
+        member = payload.member
 
-        msg = playload.message_id
-        usrid = playload.user_id
-        emoji = playload.emoji
+        # Checking if is a role message.
+        if msg == ROLES_MSGS['q1']:
+            await member.add_roles(self.guild.get_role(ROLES_ID['q1']))
+            if emoji=="1️⃣":
+                await member.add_roles(self.guild.get_role(ROLES_ID['q1-fisica']))
+            if emoji=="2️⃣":
+                await member.add_roles(self.guild.get_role(ROLES_ID['q1-fonaments']))
+        if msg == ROLES_MSGS['q2']:
+            await member.add_roles(self.guild.get_role(ROLES_ID['q2']))
+            if emoji=="1️⃣":
+                await member.add_roles(self.guild.get_role(ROLES_ID['q2-sociologia']))
+            if emoji=="2️⃣":
+                await member.add_roles(self.guild.get_role(ROLES_ID['q2-teatre']))
+        
 
-        if msg == DM_MSG and emoji.name == DM_EMJ:
-            usr = self.get_user(usrid)
+    async def on_raw_reaction_remove(self, payload):
+        msg = payload.message_id
+        usr = payload.user_id
+        emoji = payload.emoji.name
+        ch = payload.channel_id
+        member = await self.guild.fetch_member(usr)
 
-    async def on_raw_reaction_remove(self, playload):
-        DM_MSG = 773846606792491029
-        DM_EMJ = "👍"
-
-        msg = playload.message_id
-        usr = playload.user_id
-        emoji = playload.emoji
-
-        if msg == DM_MSG and emoji.name == DM_EMJ:
-            print(usr)
+        # Checking if is a role message.
+        if msg == ROLES_MSGS['q1']:
+            await member.remove_roles(self.guild.get_role(ROLES_ID['q1']))
+            if emoji=="1️⃣":
+                await member.remove_roles(self.guild.get_role(ROLES_ID['q1-fisica']))
+            if emoji=="2️⃣":
+                await member.remove_roles(self.guild.get_role(ROLES_ID['q1-fonaments']))
+        if msg == ROLES_MSGS['q2']:
+            await member.remove_roles(self.guild.get_role(ROLES_ID['q2']))
+            if emoji=="1️⃣":
+                await member.remove_roles(self.guild.get_role(ROLES_ID['q2-sociologia']))
+            if emoji=="2️⃣":
+                await member.remove_roles(self.guild.get_role(ROLES_ID['q2-teatre']))     
 
     
 if __name__ == "__main__":
@@ -99,6 +128,10 @@ if __name__ == "__main__":
         filein = json.loads(json_file.read())
         TOKEN= filein['token']
         GUILD = filein['guild']
+        ROLES_ID = filein["roles-id"]
+        ROLES_MSGS = filein["roles-msgs"]
+        TC_ID = filein["text-channels-id"]
+        VC_ID = filein["voice-channels-id"]
 
     # Runs bot loop
     mainbot = EpsemBot()
