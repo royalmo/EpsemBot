@@ -63,21 +63,21 @@ class EpsemBot(discord.Client):
 
         if db_response == [True, None, None]:
             response_code = 0
-        elif db_response==[False, None, None]:
+        elif db_response == [False, None, None]:
             response_code = 1
-        elif db_response[2]==None:
+        elif db_response[2] == None:
             response_code = 2
-        elif db_response[1]==None:
+        elif db_response[1] == None:
             response_code = 4
         else:
             response_code = 3
 
-        if response_code[2]!=None:
-            response_code[2] = super().get_user(response_code[2]).mention
+        if db_response[2]!=None:
+            db_response[2] = super().get_user(db_response[2]).mention
 
         # Sends mail confirmation discord msg
         # self.send_mail_confirm(self, duser, dchannel, )
-        sent = await dchannel.send(emojize(responses[0].format(duser.mention, mail, response_code[1], response_code[2]), use_aliases=True))
+        sent = await dchannel.send(emojize(responses[response_code].format(duser.mention, mail, db_response[1], db_response[2]), use_aliases=True))
 
         if response_code!=0:
             # Adds thumbs up and down emoji reactions
@@ -95,14 +95,18 @@ class EpsemBot(discord.Client):
         - 0: Mail sent was successful.
         - 1: Mail sent has been aborted by user (user pressed :thumbsdown:).
         - 2: Mail sent had an error. (For the moment, unknown error)
+        - 3: Verification code entered correctly.
         '''
         msgs = [
             "S'ha envat correctament el mail amb el codi de verificaci\u00f3 {0}.\nComprova la teva safata d'entrada.",
             "S'ha cancel\u00b7lat l'enviament del missatge, {0}.\nPots tornar a introduir un correu electr\u00f2nic seguint les instruccions anteriors.",
-            "Hi ha hagut algun error en l'enviament del missatge. Verifica que haguis introduit correctament l'usuari i torna-ho a intentar, {0}."
+            "Hi ha hagut algun error en l'enviament del missatge. Verifica que haguis introduit correctament l'usuari i torna-ho a intentar, {0}.",
+            "Enhorabona, {0}! Ja pots accedir al servidor! Recorda de configurar les teves {1} per a tenir els canals espec\u00edfics"
             ]
 
-        sent = await dchannel.send(msgs[msg_code].format(duser.mention))
+        subjectmention = self.guild.get_channel(TC_ID['subjects-ch']).mention
+
+        sent = await dchannel.send(msgs[msg_code].format(duser.mention, subjectmention))
         await sent.delete(delay=autodestruct)
 
     async def update_roles(self, user_id, new_roles=[], remove_student=False):
@@ -110,9 +114,9 @@ class EpsemBot(discord.Client):
         Given a user id and all the roles, removes ALL subject roles and puts all new roles.
         '''
         if not remove_student: # Adds student to a role needed, in case.
-            new_roles += "estudiant"
+            new_roles.append("estudiant")
 
-        member = self.guild.get_member(user_id)
+        member = await self.guild.fetch_member(user_id)
         actual_roles = [ r.id for r in member.roles ]
 
         for rolename, roleid in ROLES_ID.items(): # Every possible subj role
@@ -141,6 +145,9 @@ class EpsemBot(discord.Client):
         # Setting Watching status
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="parcials."))
 
+        # Sets own member
+        self.own_member = await self.guild.fetch_member(self.user.id)
+
     async def on_message(self, message):
 
         # Checks if message isn't from the bot itself, is from the correct server, and it is plain text. 
@@ -168,12 +175,12 @@ class EpsemBot(discord.Client):
 
                 # Gets domain
                 is_prof = cnt[0].lower()=='prof'
-                mail = username + ('@estudiantat.upc.edu' if is_prof else '@upc.edu')
+                mail = username + ('@upc.edu' if is_prof else '@estudiantat.upc.edu')
 
                 # Checks availability and gets the response from db.
                 # This respnse is sended automaticly to send_mail_response.
                 user = usermanager.User(message.author.id)
-                await self.send_mail_response(self, message.channel, message.author, mail, user.mail_command(mail))
+                await self.send_mail_response(message.channel, message.author, mail, user.mail_command(mail))
 
             elif cnt[0].lower() == 'code' and len(cnt)==2:
                 # Code entered
@@ -198,6 +205,7 @@ class EpsemBot(discord.Client):
                     await self.update_roles(message.author.id, user.quadrimesters + user.subjects_added)
                     if actions[1]!=None: # If some user needs to have their roles removed.
                         await self.remove_roles(actions[1])
+                    await self.send_answer(message.author, message.channel, 3)
 
             else:
                 # Sends error response
@@ -211,9 +219,9 @@ class EpsemBot(discord.Client):
         
         # Getting some basic information
         duser = super().get_user(payload.user_id)
-        msg = await duser.fetch_message(payload.message_id)
         emoji = payload.emoji.name
         channel = self.guild.get_channel(payload.channel_id)
+        msg = await channel.fetch_message(payload.message_id)
         member = payload.member
 
         # Checking if it's a mail confirmation message.
@@ -241,9 +249,9 @@ class EpsemBot(discord.Client):
 
         # Getting some basic information
         duser = super().get_user(payload.user_id)
-        msg = await duser.fetch_message(payload.message_id)
         emoji = payload.emoji.name
         channel = self.guild.get_channel(payload.channel_id)
+        msg = await channel.fetch_message(payload.message_id)
         member = await self.guild.fetch_member(duser.id)
 
         # Checking if is a role message.

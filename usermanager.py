@@ -21,7 +21,7 @@ class User():
         with open(THIS_FILE_FOLDER + JSON_FILE_PATH) as fin:
             users = loads(fin.read())
         
-        if self.id in users.keys():
+        if str(self.id) in users.keys():
             self.getuser( users[str(self.id)] )
         else:
             self.newuser()
@@ -38,7 +38,7 @@ class User():
         self.verification_code = user["verification-code"]
         self.subjects_selected = user["subjects-selected"]
         self.quadrimesters = user["quadrimesters"]
-        self.subjects_added = user["subjects_added"]
+        self.subjects_added = user["subjects-added"]
 
     def newuser(self):
         '''
@@ -66,18 +66,20 @@ class User():
             "server-nickname": self.nickname,
             "upc-mail-valid": self.upc_mail_valid,
             "upc-mail-pending": self.upc_mail_pending,
-            "upc-mail-epired": self.upc_mail_expired,
+            "upc-mail-expired": self.upc_mail_expired,
             "mail-status": self.mail_status,
-            "verifiaction-code": self.verification_code,
+            "verification-code": self.verification_code,
             "subjects-selected": self.subjects_selected,
             "quadrimesters": self.quadrimesters,
             "subjects-added": self.subjects_added
         }
 
-        with open(THIS_FILE_FOLDER + JSON_FILE_PATH, "w+") as jfile:
+        with open(THIS_FILE_FOLDER + JSON_FILE_PATH, "r+") as jfile:
             users = loads(jfile.read())
             users[str(self.id)] = to_save_user
+            jfile.seek(0)
             jfile.write(dumps(users))
+            jfile.truncate()
 
     def mail_command(self, mail):
         '''
@@ -135,7 +137,8 @@ class User():
         # Updates mail
         self.mail_status = 5
         self.upc_mail_valid = self.upc_mail_pending
-        self.upc_mail_pending = self.upc_mail_expired = ""
+        self.upc_mail_pending = ""
+        self.upc_mail_expired = ""
 
         # Removes old user (if any)
         remove_roles = self.expire_mail(self.upc_mail_valid)
