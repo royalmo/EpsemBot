@@ -239,7 +239,7 @@ class EpsemBot(discord.Client):
             dbuser = usermanager.User(duser.id)
             for rolekey, rolemsgid in ROLES_MSGS.items():
                 if rolemsgid == msg.id:
-                    for subject, emojiname in ROLE_SCHEMA[rolekey]:
+                    for subject, emojiname in ROLE_SCHEMA[rolekey].items():
                         if emoji == emojize( emojiname, use_aliases=True ):
                             subject_id = rolekey + '-' + subject
                             dbuser.role_clicked(subject_id, selected = True)
@@ -259,7 +259,7 @@ class EpsemBot(discord.Client):
             dbuser = usermanager.User(duser.id)
             for rolekey, rolemsgid in ROLES_MSGS.items():
                 if rolemsgid == msg.id:
-                    for subject, emojiname in ROLE_SCHEMA[rolekey]:
+                    for subject, emojiname in ROLE_SCHEMA[rolekey].items():
                         if emoji == emojize( emojiname, use_aliases=True ):
                             subject_id = rolekey + '-' + subject
                             dbuser.role_clicked(subject_id, selected = False)
