@@ -4,8 +4,10 @@
 from json import loads, dumps
 from send_mail import send_mail
 from random import randint
+from pathlib import Path
 
 JSON_FILE_PATH = "db/users.json"
+THIS_FILE_FOLDER = str(Path(__file__).parent.absolute()) + "/"
 
 class User():
     def __init__(self, id):
@@ -16,7 +18,7 @@ class User():
         '''
         Returns the dict of the user info, or -1 if not found.
         '''
-        with open(JSON_FILE_PATH) as fin:
+        with open(THIS_FILE_FOLDER + JSON_FILE_PATH) as fin:
             users = loads(fin.read())
         
         if self.id in users.keys():
@@ -48,7 +50,7 @@ class User():
             "upc-mail-pending": "",
             "upc-mail-expired": "",
             "mail-status": 0,
-            "verifiaction-code": 0,
+            "verification-code": 0,
             "subjects-selected": [],
             "quadrimesters": [],
             "subjects-added": []
@@ -72,7 +74,7 @@ class User():
             "subjects-added": self.subjects_added
         }
 
-        with open(JSON_FILE_PATH, "w+") as jfile:
+        with open(THIS_FILE_FOLDER + JSON_FILE_PATH, "w+") as jfile:
             users = loads(jfile.read())
             users[str(self.id)] = to_save_user
             jfile.write(dumps(users))
@@ -115,17 +117,20 @@ class User():
     def code_command(self, code):
         '''
         CODE HAS TO BE AN INTEGER!
-        Given the code and the user, verifies if code is correct, and updates things if necessary. Returns True/False depending of code verification.
+        Given the code and the user, verifies if code is correct, and updates things if necessary.
+        Returns [a, b] where:
+        - a: True/False depending of code verification.
+        - b: None/user_id that needs to have their roles removed.
         '''
         # If code not asked
         if self.mail_status not in [3, 4, 8]:
-            return False
+            return [False, None]
         
         # If code is incorrect
         if code!=self.verification_code:
             self.mail_status = 4 if self.mail_status in [3, 4] else 8
             self.saveuser()
-            return False
+            return [False, None]
 
         # Updates mail
         self.mail_status = 5
@@ -133,7 +138,7 @@ class User():
         self.upc_mail_pending = self.upc_mail_expired = ""
 
         # Removes old user (if any)
-        self.expire_mail(self.upc_mail_valid)
+        remove_roles = self.expire_mail(self.upc_mail_valid)
 
         # Add student roles to the user.
         self.update_roles()
@@ -143,16 +148,61 @@ class User():
 
         # Save and return
         self.saveuser()
-        return True
+        return [True, remove_roles]
 
     def expire_mail(self, mail):
-        pass
+        '''
+        Returns the id of the mail to remove the roles, and change db things of that user. None if user to downgrade doesn't exist or is self.
+        '''
+        mail_author_id = mail_from(mail)
+        if mail_author_id in [None, self.id]:
+            return None
+
+        # Changes some settings for the downgraded user
+        downgrade = User(mail_author_id)
+        downgrade.nickname = downgrade.nickname + '(Old)'
+        downgrade.upc_mail_expired = downgrade.upc_mail_valid
+        downgrade.upc_mail_valid = ""
+        downgrade.mail_status = 6
+        downgrade.quadrimesters = []
+        downgrade.subjects_added = []
+        downgrade.saveuser()
+
+        # Returns that user id so settings can be applied.
+        return mail_author_id
 
     def update_roles(self):
-        pass
+        '''
+        Updates the roles to the student, does not return anything.
+        '''
+        if self.mail_status in [5, 7, 8, 9]:
+            # Picks up the 6 first subjects selected.
+            self.subjects_added = self.subjects_selected[:6]
 
-    def role_clicked(self, role_internal_id):
-        pass
+            # Selects witch quadrimesters to add depending on the subjects selected.
+            self.quadrimesters = []
+            for subject in self.subjects_added:
+                if subject[:2] not in self.quadrimesters:
+                    self.quadrimesters.append(subject[:2])
+        else:
+            self.quadrimesters = []
+            self.subjects_added = []
+        self.saveuser()
+
+    def role_clicked(self, role_internal_id, selected):
+        '''
+        What happens when the user reacts to a emoji subject? This function is called. Doesn't return anything, just work out what to do with that role click.
+
+        Role_internal_id: find that in bot_settings.json (EG: "q1-fisica")
+        Selected (T/F): if the emoji reaction was selected or disselected.
+        '''
+        if selected and (role_internal_id not in self.subjects_selected):
+            self.subjects_selected.append(role_internal_id)
+            self.update_roles()
+        if (not selected) and (role_internal_id in self.subjects_selected):
+            self.subjects_selected.remove(role_internal_id)
+            self.update_roles()
+        
 
 # User actions, but that they don't depend of the user.
 
@@ -160,7 +210,7 @@ def mail_from(mail):
     '''
     Returns the int(user_id) that has the mail, None if mail if mail is free to take.
     '''
-    with open(JSON_FILE_PATH) as fin:
+    with open(THIS_FILE_FOLDER + JSON_FILE_PATH) as fin:
         users = loads(fin.read())
     for userid, userinfo in users.items():
         if userinfo['upc-mail-valid']==mail:

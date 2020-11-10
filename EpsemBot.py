@@ -4,8 +4,8 @@
 # Read README.md first, and be sure to enter your TOKEN and GUILD ID
 
 # Importing stuff
-import json
 import discord
+from json import loads, dumps
 from emoji import emojize, demojize
 
 # Importing own stuff
@@ -15,7 +15,7 @@ import usermanager
 discord.Intents(members=True, messages=True)
 
 class EpsemBot(discord.Client):
-    async def send_error_msg(self, channel, duser, error_code):
+    async def send_error_msg(self, channel, duser, error_code, autodestruct=10):
         '''
         Given a channel to send the message, the discord user to ping and the error code, it returns a simple self-destructing error message.
 
@@ -33,9 +33,9 @@ class EpsemBot(discord.Client):
 
         helpch = super().get_channel(TC_ID['help-ch'])
         sent = await channel.send(errors[error_code].format(duser.mention, helpch.mention))
-        await sent.delete(delay=10)
+        await sent.delete(delay=autodestruct)
 
-    async def send_mail_response(self, dchannel, duser, mail, db_response):
+    async def send_mail_response(self, dchannel, duser, mail, db_response, autodestruct=30):
         '''
         Given the discord channel, the discord user, the mail entered, and the response from the user database, sends a response to the chat.
 
@@ -85,9 +85,27 @@ class EpsemBot(discord.Client):
             await sent.add_reaction( emoji=emojize( ":thumbsdown:", use_aliases=True ) )
 
         # Deletes the message if isn't reacted after 30s. If it is, on_raw_reaction_add() will delete it before.
-        await sent.delete(delay=30)
+        await sent.delete(delay=autodestruct)
 
-    async def update_roles(self, user_id, new_roles, remove_student=False):
+    async def send_answer(self, duser, dchannel, msg_code, autodestruct=10):
+        '''
+        Given a Discord user, a Discord channel, and a code, the bot sends a message to the code and pings the user.
+
+        MESSAGE CODES:
+        - 0: Mail sent was successful.
+        - 1: Mail sent has been aborted by user (user pressed :thumbsdown:).
+        - 2: Mail sent had an error. (For the moment, unknown error)
+        '''
+        msgs = [
+            "S'ha envat correctament el mail amb el codi de verificaci\u00f3 {0}.\nComprova la teva safata d'entrada.",
+            "S'ha cancel\u00b7lat l'enviament del missatge, {0}.\nPots tornar a introduir un correu electr\u00f2nic seguint les instruccions anteriors.",
+            "Hi ha hagut algun error en l'enviament del missatge. Verifica que haguis introduit correctament l'usuari i torna-ho a intentar, {0}."
+            ]
+
+        sent = await dchannel.send(msgs[msg_code].format(duser.mention))
+        await sent.delete(delay=autodestruct)
+
+    async def update_roles(self, user_id, new_roles=[], remove_student=False):
         '''
         Given a user id and all the roles, removes ALL subject roles and puts all new roles.
         '''
@@ -105,6 +123,12 @@ class EpsemBot(discord.Client):
             else:
                 if roleid in actual_roles: # If user has this role, and don't needed.
                     await member.remove_roles(self.guild.get_role(roleid))
+
+    async def remove_roles(self, user_id):
+        '''
+        Removes all subject_roles that user_id has. Uses update_roles().
+        '''
+        await self.update_roles(user_id, remove_student=True)
 
     async def on_ready(self):
 
@@ -139,7 +163,7 @@ class EpsemBot(discord.Client):
                 username = cnt[1]
                 if len(username.split('@'))!=1 and len(username.split('.'))<2:
                     # User contains domain or doesn't contain dots.
-                    self.send_error_msg(message.channel, message.author, 2)
+                    await self.send_error_msg(message.channel, message.author, 2)
                     return
 
                 # Gets domain
@@ -149,7 +173,7 @@ class EpsemBot(discord.Client):
                 # Checks availability and gets the response from db.
                 # This respnse is sended automaticly to send_mail_response.
                 user = usermanager.User(message.author.id)
-                self.send_mail_response(self, message.channel, message.author, mail, user.mail_command(mail))
+                await self.send_mail_response(self, message.channel, message.author, mail, user.mail_command(mail))
 
             elif cnt[0].lower() == 'code' and len(cnt)==2:
                 # Code entered
@@ -157,86 +181,97 @@ class EpsemBot(discord.Client):
                     code = int(cnt[1])
                 except ValueError:
                     # Sends error response if code isn't a number.
-                    self.send_error_msg(message.channel, message.author, 1)
+                    await self.send_error_msg(message.channel, message.author, 1)
                     return
 
                 # Sends error response if code isnt XXXXXX where X is a number or code is a float.
                 if len(cnt[1])!=6 or float(cnt[1]) != code:
-                    self.send_error_msg(message.channel, message.author, 1)
+                    await self.send_error_msg(message.channel, message.author, 1)
                     return
 
                 # Checkss if code was needed and valid.
                 user = usermanager.User(message.author.id)
-                if not user.code_command(code):
-                    self.send_error_msg(message.channel, message.author, 3)
+                actions = user.code_command(code)
+                if not actions[0]:
+                    await self.send_error_msg(message.channel, message.author, 3)
                 else:
-                    self.update_roles(message.author.id, user.quadrimesters + user.subjects_added)
+                    await self.update_roles(message.author.id, user.quadrimesters + user.subjects_added)
+                    if actions[1]!=None: # If some user needs to have their roles removed.
+                        await self.remove_roles(actions[1])
+
             else:
                 # Sends error response
-                self.send_error_msg(message.channel, message.author, 0)
-                return
+                await self.send_error_msg(message.channel, message.author, 0)
+            
+            return # To prevent this function from doing other things
 
-        # Does something if message is correct.
-        elif len(message.mentions)>2:
-            await message.channel.send("Ep! No et passis etiquetant a tanta gent!")
+        # Here you can append other funcions in on_message()
 
     async def on_raw_reaction_add(self, payload):
-        msg = payload.message_id
-        usr = payload.user_id
+        
+        # Getting some basic information
+        duser = super().get_user(payload.user_id)
+        msg = await duser.fetch_message(payload.message_id)
         emoji = payload.emoji.name
-        ch = payload.channel_id
+        channel = self.guild.get_channel(payload.channel_id)
         member = payload.member
 
+        # Checking if it's a mail confirmation message.
+        if channel.id == TC_ID['welcome-ch'] and duser in msg.mentions:
+            await msg.delete()
+            if emoji==emojize( ":thumbsdown:", use_aliases=True ):
+                await self.send_answer( duser, channel, 1 )
+            else:
+                db_user = usermanager.User(duser.id)
+                success = db_user.send_code()
+                await self.send_answer( duser, channel, 0 if success else 2 )
+
         # Checking if is a role message.
-        if msg == ROLES_MSGS['q1']:
-            await member.add_roles(self.guild.get_role(ROLES_ID['q1']))
-            if emoji==emojize(":one:"):
-                await member.add_roles(self.guild.get_role(ROLES_ID['q1-fisica']))
-            if emoji==emojize(":two:"):
-                await member.add_roles(self.guild.get_role(ROLES_ID['q1-fonaments']))
-        if msg == ROLES_MSGS['q2']:
-            await member.add_roles(self.guild.get_role(ROLES_ID['q2']))
-            if emoji==emojize(":one:"):
-                await member.add_roles(self.guild.get_role(ROLES_ID['q2-sociologia']))
-            if emoji==emojize(":two:"):
-                await member.add_roles(self.guild.get_role(ROLES_ID['q2-teatre']))
+        if channel.id == TC_ID['subjects-ch']:
+            dbuser = usermanager.User(duser.id)
+            for rolekey, rolemsgid in ROLES_MSGS.items():
+                if rolemsgid == msg.id:
+                    for subject, emojiname in ROLE_SCHEMA[rolekey]:
+                        if emoji == emojize( emojiname, use_aliases=True ):
+                            subject_id = rolekey + '-' + subject
+                            dbuser.role_clicked(subject_id, selected = True)
+            await self.update_roles(duser.id, dbuser.quadrimesters + dbuser.subjects_added)
 
     async def on_raw_reaction_remove(self, payload):
-        msg = payload.message_id
-        usr = payload.user_id
+
+        # Getting some basic information
+        duser = super().get_user(payload.user_id)
+        msg = await duser.fetch_message(payload.message_id)
         emoji = payload.emoji.name
-        ch = payload.channel_id
-        member = await self.guild.fetch_member(usr)
+        channel = self.guild.get_channel(payload.channel_id)
+        member = await self.guild.fetch_member(duser.id)
 
         # Checking if is a role message.
-        if msg == ROLES_MSGS['q1']:
-            await member.remove_roles(self.guild.get_role(ROLES_ID['q1']))
-            if emoji=="1️⃣":
-                await member.remove_roles(self.guild.get_role(ROLES_ID['q1-fisica']))
-            if emoji=="2️⃣":
-                await member.remove_roles(self.guild.get_role(ROLES_ID['q1-fonaments']))
-        if msg == ROLES_MSGS['q2']:
-            await member.remove_roles(self.guild.get_role(ROLES_ID['q2']))
-            if emoji=="1️⃣":
-                await member.remove_roles(self.guild.get_role(ROLES_ID['q2-sociologia']))
-            if emoji=="2️⃣":
-                await member.remove_roles(self.guild.get_role(ROLES_ID['q2-teatre']))
+        if channel.id == TC_ID['subjects-ch']:
+            dbuser = usermanager.User(duser.id)
+            for rolekey, rolemsgid in ROLES_MSGS.items():
+                if rolemsgid == msg.id:
+                    for subject, emojiname in ROLE_SCHEMA[rolekey]:
+                        if emoji == emojize( emojiname, use_aliases=True ):
+                            subject_id = rolekey + '-' + subject
+                            dbuser.role_clicked(subject_id, selected = False)
+            await self.update_roles(duser.id, dbuser.quadrimesters + dbuser.subjects_added)
 
-    
 if __name__ == "__main__":
 
     # Welcome message
     print("\n" + "*"*55 + "\n" + " "*10 + "EPSEM BOT - Discord server manager\n" + "*"*55 + "\n\nLoading settings and connecting to Discord...")
 
     # Loads settings
-    with open('bot_settings.json', 'r') as json_file:
-        filein = json.loads(json_file.read())
+    with open(usermanager.THIS_FILE_FOLDER + 'bot_settings.json') as json_file:
+        filein = loads(json_file.read())
         TOKEN= filein['token']
         GUILD = filein['guild']
         ROLES_ID = filein['roles-id']
         ROLES_MSGS = filein['roles-msgs']
         TC_ID = filein['text-channels-id']
         VC_ID = filein['voice-channels-id']
+        ROLE_SCHEMA = filein['role-schema']
 
     # Runs bot loop
     mainbot = EpsemBot()

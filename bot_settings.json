@@ -28,5 +28,15 @@
         "q1-fonaments": 773690936445894666,
         "q2-teatre": 773690741192392794,
         "q2-sociologia": 773690704215670786
+    },
+    "role-schema": {
+        "q1": {
+            "fisica": ":one:", 
+            "fonaments": ":two:"
+        },
+        "q2": {
+            "sociologia": ":one:",
+            "teatre": ":two:"
+        }
     }
 }
