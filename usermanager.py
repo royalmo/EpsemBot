@@ -79,20 +79,27 @@ class User():
 
     def mail_command(self, mail):
         '''
-        Does something after receiving a mail.
+        Does some checks after receiving a mail.
+        
+        Adds mail to self.upc_mail_pending if it can be verified.
+
         Returns [a, b, c] depending on:
-        a: if this mail is already verified by this user. (True/False)
-        b: if user already has a verified mail. (None/Verified mail)
-        c: if mail is already verified by another Discord account. (None/Verified Discrod ID) 
+        - a: if this mail is already verified by this user. (True/False)
+        - b: if user already has a verified mail. (None/Verified mail)
+        - c: if mail is already verified by another Discord account. (None/Verified Discrod ID) 
         '''
         if self.upc_mail_valid == mail:
             return [True, None, None]
 
+        # If mail is from another user mail is new or user has another mail, this means that this mail can be verified, so let's save it.
+        self.upc_mail_pending = mail
+        self.saveuser()
+
+        # Checks the previous things mentioned above, and returns the values.
         actualmail = self.upc_mail_valid if self.upc_mail_valid!="" else None
         dbmail = mail_from(mail)
 
-        if dbmail==None:
-            return [False, actualmail, dbmail]
+        return [False, actualmail, dbmail]
 
     def send_code(self):
         '''
@@ -144,11 +151,14 @@ class User():
     def update_roles(self):
         pass
 
+    def role_clicked(self, role_internal_id):
+        pass
+
 # User actions, but that they don't depend of the user.
 
 def mail_from(mail):
     '''
-    Returns the int(user_id) that has the mail, None if mail if free, and self.id if the mail is from the same user.
+    Returns the int(user_id) that has the mail, None if mail if mail is free to take.
     '''
     with open(JSON_FILE_PATH) as fin:
         users = loads(fin.read())

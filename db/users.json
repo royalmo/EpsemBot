@@ -1,28 +1,3 @@
 {
-    "8762349134109743": {
-        "server-nickname": "Eric Roy",
 
-        "upc-mail-valid": "eric.roy@estudiantat.upc.edu", 
-        "upc-mail-pending": "",
-        "mail-status": 5,
-        
-        "verifiaction-code": 899273,
-
-        "subjects-selected": [ 
-            11,
-            12,
-            13,
-            14,
-            15
-        ],
-
-        "quadrimesters": [1],
-        "subjects-added": [
-            11,
-            12,
-            13,
-            14,
-            15
-        ]
-    }
 }

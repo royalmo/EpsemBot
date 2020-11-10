@@ -23,23 +23,19 @@ users = { # A list of all users.
         "verifiaction-code": 899273,
 
         "subjects-selected": [ # If the user selects more than 6 subjects, here you will see all of them.
-            11,
-            12,
-            13,
-            14,
-            15
+            "q1-fisica",
+            "q1-fonaments"
         ],
 
-        "quadrimesters": [
-            1
-        ],
         "subjects-added": [ # And here the selection that the bot has made.
-            11,
-            12,
-            13,
-            14,
-            15
+            "q1-fisica",
+            "q1-fonaments"
+        ],
+
+        "quadrimesters": [ # Quadrimesters that contain all subjects-added
+            "q1"
         ]
+
     },
 
     "091237819246524378": {
