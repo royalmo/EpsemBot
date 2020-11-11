@@ -16,6 +16,7 @@ import usermanager
 intents = discord.Intents.default() #THESE 3 LINES YES
 intents.members = True
 intents.messages = True
+intents.voice_states = True
 
 class EpsemBot(discord.Client):
     async def send_error_msg(self, channel, duser, error_code, autodestruct=15):
@@ -101,7 +102,7 @@ class EpsemBot(discord.Client):
         - 3: Verification code entered correctly.
         '''
         msgs = [
-            "S'ha envat correctament el mail amb el codi de verificaci\u00f3 {0}.\nComprova la teva safata d'entrada.",
+            "S'ha enviat correctament el mail amb el codi de verificaci\u00f3 {0}.\nComprova la teva safata d'entrada.",
             "S'ha cancel\u00b7lat l'enviament del missatge, {0}.\nPots tornar a introduir un correu electr\u00f2nic seguint les instruccions anteriors.",
             "Hi ha hagut algun error en l'enviament del missatge. Verifica que haguis introduit correctament l'usuari i torna-ho a intentar, {0}.",
             "Enhorabona, {0}! Ja pots accedir al servidor! Recorda de configurar les teves {1} per a tenir els canals espec\u00edfics"
@@ -282,6 +283,22 @@ class EpsemBot(discord.Client):
                             subject_id = rolekey + '-' + subject
                             dbuser.role_clicked(subject_id, selected = False)
             await self.update_roles(duser.id, dbuser.quadrimesters + dbuser.subjects_added)
+
+    async def on_voice_state_update(self, member, before, after):
+        '''
+        Called when a Member changes their VoiceState. EG:
+        - A member joins a voice channel.
+        - A member leaves a voice channel.
+        - A member is muted or deafened by their own accord.
+        - A member is muted or deafened by a guild administrator.
+
+        Parameters
+        - member (Member) – The member whose voice states changed.
+        - before (VoiceState) – The voice state prior to the changes.
+        - after (VoiceState) – The voice state after to the changes.
+        '''
+        # new_ch = await clone(name=None)
+        pass
 
 if __name__ == "__main__":
 
