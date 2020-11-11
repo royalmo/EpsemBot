@@ -12,10 +12,13 @@ from emoji import emojize, demojize
 import usermanager
 
 # This is now mandatory, and I still don't understand why they did it...
-discord.Intents(members=True, messages=True)
+# discord.Intents(members=True, messages=True) #THIS LINE DOESN'T WORK
+intents = discord.Intents.default() #THESE 3 LINES YES
+intents.members = True
+intents.messages = True
 
 class EpsemBot(discord.Client):
-    async def send_error_msg(self, channel, duser, error_code, autodestruct=10):
+    async def send_error_msg(self, channel, duser, error_code, autodestruct=15):
         '''
         Given a channel to send the message, the discord user to ping and the error code, it returns a simple self-destructing error message.
 
@@ -109,15 +112,20 @@ class EpsemBot(discord.Client):
         sent = await dchannel.send(msgs[msg_code].format(duser.mention, subjectmention))
         await sent.delete(delay=autodestruct)
 
-    async def update_roles(self, user_id, new_roles=[], remove_student=False):
+    async def update_roles(self, user_id, new_roles=[], nickname=None, remove_student=False):
         '''
         Given a user id and all the roles, removes ALL subject roles and puts all new roles.
         '''
-        if not remove_student: # Adds student to a role needed, in case.
-            new_roles.append("estudiant")
-
         member = await self.guild.fetch_member(user_id)
         actual_roles = [ r.id for r in member.roles ]
+        user = super().get_user(user_id)
+
+        if not remove_student: # Adds student to a role needed, in case.
+            new_roles.append("estudiant")
+            if nickname != None:
+                await self.edit_nickname(member, nickname)
+        else:
+            await self.edit_nickname(member, (member.nick if member.nick!=None else user.name) + " (Old)")
 
         for rolename, roleid in ROLES_ID.items(): # Every possible subj role
             if rolename in new_roles: # If user needs to have the role
@@ -133,6 +141,16 @@ class EpsemBot(discord.Client):
         Removes all subject_roles that user_id has. Uses update_roles().
         '''
         await self.update_roles(user_id, remove_student=True)
+
+    async def edit_nickname(self, member, new_nick):
+        '''
+        Edits the member nickname in the server. Aborts operation in silence if it has a Forbidden error (editing admin's name).
+        Doesn't return anything.
+        '''
+        try:
+            await member.edit(nick=new_nick)
+        except discord.errors.Forbidden:
+            print(f"Abborted nickname change for user_id: {member.id}. Permission dennied.")
 
     async def on_ready(self):
 
@@ -168,7 +186,7 @@ class EpsemBot(discord.Client):
 
                 # User entered
                 username = cnt[1]
-                if len(username.split('@'))!=1 and len(username.split('.'))<2:
+                if len(username.split('@'))!=1 or len(username.split('.'))<2:
                     # User contains domain or doesn't contain dots.
                     await self.send_error_msg(message.channel, message.author, 2)
                     return
@@ -202,7 +220,7 @@ class EpsemBot(discord.Client):
                 if not actions[0]:
                     await self.send_error_msg(message.channel, message.author, 3)
                 else:
-                    await self.update_roles(message.author.id, user.quadrimesters + user.subjects_added)
+                    await self.update_roles(message.author.id, user.quadrimesters + user.subjects_added, user.nickname)
                     if actions[1]!=None: # If some user needs to have their roles removed.
                         await self.remove_roles(actions[1])
                     await self.send_answer(message.author, message.channel, 3)
@@ -282,5 +300,5 @@ if __name__ == "__main__":
         ROLE_SCHEMA = filein['role-schema']
 
     # Runs bot loop
-    mainbot = EpsemBot()
+    mainbot = EpsemBot(intents=intents)
     mainbot.run(TOKEN)
