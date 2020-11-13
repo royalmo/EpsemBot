@@ -260,8 +260,10 @@ class EpsemBot(discord.Client):
                 if rolemsgid == msg.id:
                     for subject, emojiname in ROLE_SCHEMA[rolekey].items():
                         if emoji == emojize( emojiname, use_aliases=True ):
-                            subject_id = rolekey + '-' + subject
-                            dbuser.role_clicked(subject_id, selected = True)
+                            dbuser.role_clicked(rolekey + '-' + subject, selected = True)
+                            break
+                    break
+                            
             await self.update_roles(duser.id, dbuser.quadrimesters + dbuser.subjects_added)
 
     async def on_raw_reaction_remove(self, payload):
@@ -280,8 +282,10 @@ class EpsemBot(discord.Client):
                 if rolemsgid == msg.id:
                     for subject, emojiname in ROLE_SCHEMA[rolekey].items():
                         if emoji == emojize( emojiname, use_aliases=True ):
-                            subject_id = rolekey + '-' + subject
-                            dbuser.role_clicked(subject_id, selected = False)
+                            dbuser.role_clicked(rolekey + '-' + subject, selected = False)
+                            break
+                    break
+
             await self.update_roles(duser.id, dbuser.quadrimesters + dbuser.subjects_added)
 
     async def on_voice_state_update(self, member, before, after):
